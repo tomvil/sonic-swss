@@ -209,6 +209,17 @@ void IntfMgr::addLoopbackIntf(const string &alias)
 
 void IntfMgr::delLoopbackIntf(const string &alias)
 {
+    stringstream check_cmd;
+    string check_res;
+    check_cmd << IP_CMD << " link show " << shellquote(alias) << " | grep -q '" << alias << "'";
+    int check_ret = swss::exec(check_cmd.str(), check_res);
+
+    if (check_ret != 0)
+    {
+        SWSS_LOG_INFO("Loopback interface %s doesn't exist, skipping deletion", alias.c_str());
+        return;
+    }
+
     stringstream cmd;
     string res;
 
@@ -518,6 +529,18 @@ std::string IntfMgr::setHostSubIntfAdminStatus(const string &alias, const string
 
 void IntfMgr::removeHostSubIntf(const string &subIntf)
 {
+    // Check if sub-interface exists before trying to delete it
+    stringstream check_cmd;
+    string check_res;
+    check_cmd << IP_CMD << " link show " << shellquote(subIntf) << " | grep -q '" << subIntf << "'";
+    int check_ret = swss::exec(check_cmd.str(), check_res);
+
+    if (check_ret != 0)
+    {
+        SWSS_LOG_INFO("Sub-interface %s doesn't exist, skipping deletion", subIntf.c_str());
+        return;
+    }
+
     stringstream cmd;
     string res;
 
@@ -1057,6 +1080,18 @@ bool IntfMgr::doIntfGeneralTask(const vector<string>& keys,
     }
 
     return true;
+}
+
+bool IntfMgr::doesIntfExist(const string &alias)
+{
+    stringstream cmd;
+    string res;
+
+    cmd << IP_CMD << " link show " << shellquote(alias) << " | grep -q '" << alias << "'";
+    int ret = swss::exec(cmd.str(), res);
+
+    // Return true if the command succeeded (interface exists)
+    return (ret == 0);
 }
 
 bool IntfMgr::doIntfAddrTask(const vector<string>& keys,
